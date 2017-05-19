@@ -35,22 +35,22 @@ class DBMIProject(yaml2.YAMLObject):
         '''
         # TODO: format lists to not have lists...
         md = '''
-             #{project}
-
-             {description}
-
-             ## Languages:
-             {languages}
-
-             ## Tags:
-             {tags}
-
-             ## Packages:
-             {packages}
-
-             ## Authors:
-             {authors}
-
-             ## Lab: {lab}
+             |             |                 |
+             |-------------|-----------------|
+             | Name        | {name}          |
+             | Author      | {authors}       |
+             | Lab         | {lab}           |
+             | URL         | {url}           |
+             | Description | {description}   |
+             | Tags        | {tags}          |
+             | Packages    | {packages}      |
              '''
         return md.format(**self.__dict__)
+
+
+
+
+
+
+
+
