@@ -7,27 +7,12 @@ from invoke import task, run
 import boto3
 import contextlib
 import shutil
-# from botocore.errorfactory import ExecutionAlreadyExists
-from core.utils import run_workflow as _run_workflow
-from core.utils import _tibanna_settings, Tibanna, get_files_to_match
 
-docs_dir = 'docs'
+
+here = os.path.abspath(os.path.dirname(__file__))
+docs_dir = os.path.join(here,'docs')
 build_dir = os.path.join(docs_dir, '_build')
-
-
-def get_all_core_lambdas():
-    return ['start_run_sbg',
-            'check_import_sbg',
-            'run_task_sbg',
-            'check_task_sbg',
-            'update_metadata_ff',
-            'export_files_sbg',
-            'check_export_sbg',
-            'validate_md5_s3_trigger',
-            'tibanna_slackbot',
-            'start_run_awsf',
-            'deploy_prod',
-            ]
+code_dir = os.path.join('tentacle')
 
 
 @contextlib.contextmanager
@@ -42,7 +27,6 @@ def chdir(dirname=None):
 
 
 def upload(keyname, data, s3bucket, secret=None):
-
     if secret is None:
         secret = os.environ.get("SECRET")
         if secret is None:
@@ -79,22 +63,6 @@ def copytree(src, dst, symlinks=False, ignore=None):
 
 
 @task
-def new_lambda(ctx, name, base='run_task_sbg'):
-    '''
-    create a new lambda by copy from a base one and replacing some core strings.
-    '''
-    copytree(src='./core/%s' % base,
-             dst='./core/%s' % base)
-    # TODO: awk some lines here...
-
-
-@task
-def get_url(ctx, prj_name='lambda_sbg'):
-    url = run('cd %s; chalice url' % prj_name).stdout.strip('\n')
-    return url
-
-
-@task
 def test(ctx, watch=False, last_failing=False, no_flake=False, k='',  extra=''):
     """Run the tests.
     Note: --watch requires pytest-xdist to be installed.
@@ -114,6 +82,7 @@ def test(ctx, watch=False, last_failing=False, no_flake=False, k='',  extra=''):
         args.append('--lf')
     retcode = pytest.main(args)
     try:
+        # voice feedback, TODO: read this from s3
         home = path.expanduser("~")
         if retcode == 0:
             sndfile = os.path.join(home, "code", "snd", "zenyatta", "You_Have_Done_Well.ogg")
@@ -136,96 +105,52 @@ def flake(ctx):
 @task
 def clean(ctx):
     run("rm -rf build")
-    print("Cleaned up.")
+    run("rm -rf *.egg-info")
+    run("rm -rf .coverage")
+    run("rm -rf .eggs")
+    print("I have cleaned your environment sir. May I suggest re-running your tests?")
 
 
 @task
-def deploy_chalice(ctx, name='lambda_sbg', version=None):
-    print("deploying %s" % (name))
-    print("a chalice based lambda api")
-    run("cd %s; chalice deploy" % (name))
-
-
-@task
-def deploy_core(ctx, name, version=None, run_tests=True):
+def deploy_lambda(ctx, version=None, run_tests=True):
     print("preparing for deploy...")
     print("make sure tests pass")
     if run_tests:
         if test(ctx) != 0:
             print("tests need to pass first before deploy")
-            # return
-    if name == 'all':
-        names = get_all_core_lambdas()
-        print(names)
-    else:
-        names = [name, ]
+            return
 
-    for name in names:
-        print("=" * 20, "Deploying lambda", name, "=" * 20)
-        with chdir("./core/%s" % (name)):
-            print("clean up previous builds.")
-            clean(ctx)
-            print("building lambda package")
-            deploy_lambda_package(ctx, name)
-        print("next get version information")
-        # version = update_version(ctx, version)
-        print("then tag the release in git")
-        # git_tag(ctx, version, "new production release %s" % (version))
-        # print("Build is now triggered for production deployment of %s "
-        #      "check travis for build status" % (version))
+    print("not implemented correctly for this repo")
+    return
 
-
-@task
-def deploy_lambda_package(ctx, name):
-    run('lambda deploy  --local-package ../..')
-
-
-@task
-def upload_sbg_keys(ctx, sbgkey=None, env='fourfront-webprod'):
-    if sbgkey is None:
-        sbgkey = os.environ.get('SBG_KEY')
-
-    if sbgkey is None:
-        print("error no sbgkey found in environment")
-        return 1
-
-    s3bucket = "elasticbeanstalk-%s-system" % env
-    return upload_keys(ctx, sbgkey, 'sbgkey', s3bucket)
-
-
-def _PROD():
-    return _tbenv() == 'PROD'
-
-
-def _tbenv(env_data=None):
-    if env_data and env_data.get('env'):
-        return env_data('env')
-    return os.environ.get('ENV_NAME')
+    # TODO: fix deployment of lambda / slack stuff
+    print("=" * 20, "Deploying lambda", name, "=" * 20)
+    with chdir("./core/%s" % (name)):
+        print("clean up previous builds.")
+        clean(ctx)
+        print("building lambda package")
+        deploy_lambda_package(ctx, name)
+    print("next get version information")
+    # version = update_version(ctx, version)
+    print("then tag the release in git")
+    # git_tag(ctx, version, "new production release %s" % (version))
+    # print("Build is now triggered for production deployment of %s "
+    #      "check travis for build status" % (version))
 
 
 def upload_keys(ctx, keys, name, s3bucket=None):
+    # TODO: maybe we should use KMS
     if not s3bucket:
-        s3bucket = 'elasticbeanstalk-fourfront-webprod-system'
-    print("uploading sbkey to %s as %s" % (s3bucket, name))
+        s3bucket = "dbmi_system"
+    print("uploading key to %s as %s" % (s3bucket, name))
     upload(name, keys, s3bucket)
 
 
 @task
-def upload_s3_keys(ctx, key=None, secret=None, env="fourfront-webprod"):
-    if key is None:
-        key = os.environ.get("SBG_S3_KEY")
-    if secret is None:
-        secret = os.environ.get("SBG_S3_SECRET")
-
-    pckt = {'key': key,
-            'secret': secret}
-    s3bucket = "elasticbeanstalk-%s-system" % env
-    return upload_keys(ctx, json.dumps(pckt), 'sbgs3key', s3bucket)
-
-
-@task
 def update_version(ctx, version=None):
-    from wranglertools._version import __version__
+    from tentacle._version import __version__
+    version_file = os.patch.join(code_dir, "_version.py")
+
     print("Current version is ", __version__)
     if version is None:
         version = input("What version would you like to set for new release (please use x.x.x / "
@@ -233,15 +158,15 @@ def update_version(ctx, version=None):
 
     # read the versions file
     lines = []
-    with open("wranglertools/_version.py") as readfile:
+    with open(version_file) as readfile:
         lines = readfile.readlines()
 
     if lines:
-        with open("wranglertools/_version.py", 'w') as writefile:
+        with open(version_file, 'w') as writefile:
             lines[-1] = '__version__ = "%s"\n' % (version.strip())
             writefile.writelines(lines)
 
-    run("git add wranglertools/_version.py")
+    run("git add %s" % version_file)
     run("git commit -m 'version bump'")
     print("version updated to", version)
     return version
@@ -308,98 +233,3 @@ def publish(ctx, test=False):
     else:
         run('python setup.py register sdist bdist_wheel', echo=True)
         run('twine upload dist/*', echo=True)
-
-
-@task
-def run_md5(ctx, env, accession, uuid):
-    if not accession.endswith(".fastq.gz"):
-        accession += ".fastq.gz"
-    input_json = make_input(env=env, workflow='md5', accession=accession, uuid=uuid)
-    return _run_workflow(input_json, accession)
-
-
-@task
-def batch_fastqc(ctx, env, batch_size=20):
-    '''
-    try to run fastqc on everythign that needs it ran
-    '''
-    tibanna = Tibanna(env=env)
-    uploaded_files = get_files_to_match(tibanna,
-                                        "search/?type=File&status=uploaded&limit=%s" % batch_size,
-                                        frame="embedded")
-
-    # TODO: need to change submit 4dn to not overwrite my limit
-    if len(uploaded_files['@graph']) > batch_size:
-        limited_files = uploaded_files['@graph'][:batch_size]
-    else:
-        limited_files = uploaded_files['@graph']
-
-    for ufile in limited_files:
-        fastqc_run = False
-        for wfrun in ufile.get('workflow_run_inputs', []):
-            if 'fastqc' in wfrun:
-                fastqc_run = True
-        if not fastqc_run:
-            print("running fastqc for %s" % ufile.get('accession'))
-            run_fastqc(ctx, env, ufile.get('accession'), ufile.get('uuid'))
-        else:
-            print("******** fastqc already run for %s skipping" % ufile.get('accession'))
-
-
-@task
-def run_fastqc(ctx, env, accession, uuid):
-    if not accession.endswith(".fastq.gz"):
-        accession += ".fastq.gz"
-    input_json = make_input(env=env, workflow='fastqc-0-11-4-1/1', accession=accession, uuid=uuid)
-    return _run_workflow(input_json, accession)
-
-
-_workflows = {'md5': 'd3f25cd3-e726-4b3c-a022-48f844474b4',
-              'fastqc-0-11-4-1/1': '2324ad76-ff37-4157-8bcc-3ce72b7dace9',
-              }
-
-
-def make_input(env, workflow, accession, uuid):
-    bucket = "elasticbeanstalk-%s-files" % env
-    output_bucket = "elasticbeanstalk-%s-wfoutput" % env
-    workflow_uuid = _workflows[workflow]
-
-    data = {"parameters": {},
-            "app_name": workflow,
-            "workflow_uuid": workflow_uuid,
-            "input_files": [
-                {"workflow_argument_name": "input_fastq",
-                 "bucket_name": bucket,
-                 "uuid": uuid,
-                 "object_key": accession,
-                 }
-             ],
-            "output_bucket": output_bucket,
-            }
-    data.update(_tibanna_settings({'run_id': str(accession),
-                                   'run_type': workflow,
-                                   'env': env,
-                                   }))
-    return data
-
-
-@task
-def run_workflow(ctx, input_json=''):
-    with open(input_json) as input_file:
-        data = json.load(input_file)
-        return _run_workflow(data)
-
-
-@task
-def travis(ctx, branch='production', owner='4dn-dcic', repo_name='fourfront'):
-    # lambdas use logging
-    import logging
-    logging.basicConfig()
-
-    from core.travis_deploy.service import handler as travis
-    data = {'branch': branch,
-            'repo_owner': owner,
-            'repo_name': repo_name
-            }
-    travis(data, None)
-    # print("https://travis-ci.org/%s" % res.json()['repository']['slug'])

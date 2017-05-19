@@ -19,7 +19,7 @@ tests_require = [
 
 setup(
     name='Tentacle - repo tracker',
-    version=open("_version.py").readlines()[-1].split()[-1].strip("\"'"),
+    version=open("tentacle/_version.py").readlines()[-1].split()[-1].strip("\"'"),
     description='Tentacle - the tool for collecting repo information',
     packages=['tentacle'],
     zip_safe=False,
