@@ -1,0 +1,29 @@
+--- !DBMIProject
+project: Tentacle - DBMI Repo Crawler
+description: Tentacle is the DBMI Repo Crawler.  It will periodically poll a list of code repositories (github repos / organizations) looking for a `.dbmi.yml` file.  This file should contian appropriate metadata about the repository and that information will be updated to the DBMI confluence in a searchable manner.
+lab: TechCore
+authors: 
+  - Jeremy Johnson
+  - Dan Traviglia
+languages:
+  - python
+  - yaml 
+tags: 
+  - devops
+  - crawler 
+  - parser
+  - data ingest 
+  - yaml
+  - aws
+  - lambda
+
+# above this line is required, below this line
+# optional but highly appreciated
+needs:
+  - users 
+  - python developers 
+  - marketing 
+packages:
+  - yaml 
+  - aws
+  - lambda
