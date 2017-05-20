@@ -9,6 +9,7 @@ except:
     pass  # don't know why this fails with tox
 
 requires = [
+    'pyyaml',
 ]
 
 tests_require = [

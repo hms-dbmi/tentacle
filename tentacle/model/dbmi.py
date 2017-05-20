@@ -46,11 +46,3 @@ class DBMIProject(yaml2.YAMLObject):
              | Packages    | {packages}      |
              '''
         return md.format(**self.__dict__)
-
-
-
-
-
-
-
-
