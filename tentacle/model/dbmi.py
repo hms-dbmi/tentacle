@@ -1,21 +1,20 @@
-import yaml2
-
-def parse_yml(yml_file):
-    '''
-    returns a python dictionary
-    of the object
-    '''
-    return yaml2.load(open(yml_file))
+import yaml
 
 
-# do some serializer stuff here
-# how about make a model just like django..
-
-class DBMIProject(yaml2.YAMLObject):
+class DBMIProject(yaml.YAMLObject):
     yaml_tag = "!DBMIProject"
+
+    @classmethod
+    def from_yml(cls, path):
+        '''
+        of course nobody would ever pass me anything
+        malicious or not DBMIProject
+        '''
+        return yaml.load(open(path))
+
     def __init__(self, project, description, lab,
                  authors, languages, tags,
-                 needs=None, packages=None):
+                 needs=None, packages=None, url=''):
         self.project = project
         self.description = description
         self.lab = lab
@@ -24,9 +23,10 @@ class DBMIProject(yaml2.YAMLObject):
         self.tags = tags
         self.needs = needs
         self.packages = packages
+        self.url = url
 
     def __str__(self):
-        return yaml2.dump(self)
+        return yaml.dump(self)
 
     def to_markdown(self):
         '''
@@ -37,7 +37,7 @@ class DBMIProject(yaml2.YAMLObject):
         md = '''
              |             |                 |
              |-------------|-----------------|
-             | Name        | {name}          |
+             | Name        | {project}       |
              | Author      | {authors}       |
              | Lab         | {lab}           |
              | URL         | {url}           |

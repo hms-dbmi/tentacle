@@ -2,7 +2,6 @@
 import os
 import sys
 import webbrowser
-import json
 from invoke import task, run
 import boto3
 import contextlib
@@ -10,7 +9,7 @@ import shutil
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-docs_dir = os.path.join(here,'docs')
+docs_dir = os.path.join(here, 'docs')
 build_dir = os.path.join(docs_dir, '_build')
 code_dir = os.path.join('tentacle')
 
@@ -124,6 +123,7 @@ def deploy_lambda(ctx, version=None, run_tests=True):
     return
 
     # TODO: fix deployment of lambda / slack stuff
+    '''
     print("=" * 20, "Deploying lambda", name, "=" * 20)
     with chdir("./core/%s" % (name)):
         print("clean up previous builds.")
@@ -136,6 +136,7 @@ def deploy_lambda(ctx, version=None, run_tests=True):
     # git_tag(ctx, version, "new production release %s" % (version))
     # print("Build is now triggered for production deployment of %s "
     #      "check travis for build status" % (version))
+    '''
 
 
 def upload_keys(ctx, keys, name, s3bucket=None):
