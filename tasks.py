@@ -107,6 +107,8 @@ def clean(ctx):
     run("rm -rf *.egg-info")
     run("rm -rf .coverage")
     run("rm -rf .eggs")
+    run("rm -rf htmlcov")
+    run("rm coverage.xml")
     print("I have cleaned your environment sir. May I suggest re-running your tests?")
 
 
