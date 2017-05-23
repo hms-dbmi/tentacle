@@ -1,11 +1,11 @@
 '''
 KISS scheduler, simply store list of registered urls on s3 file
 '''
+import time
 from core.utils import s3Utils
 from botocore.exceptions import ClientError
 import logging
-from multiprocessing import cpu_count  # pylint: disable=no-name-in-module
-from multiprocessing import Pool  # pylint: disable=no-name-in-module
+from concurrent.futures import ThreadPoolExecutor
 
 
 log = logging.getLogger(__name__)
@@ -39,19 +39,33 @@ def register_list(s3utils):
     return urls
 
 
-def crawl(s3utils, crawler):
+def crawl(s3utils, crawler, threads=10):
     '''
     crawler and report should be functions
 
     '''
     urls = register_list(s3utils)
     tasks = ParallelTask(crawler)
+    timer = Stopwatch()
     for task in tasks.run(urls.items()):
         pass
 
+    num_repos = len(urls.items())
+    log.debug('Crawled: %d repos at %.0f repos/s', num_repos,
+              num_repos / timer.elapsed)
+
+
+class Stopwatch(object):
+    def __init__(self):
+        self.start = time.perf_counter()
+
+    @property
+    def elapsed(self):
+        return time.perf_counter() - self.start
+
 
 class ParallelTask(object):
-    def __init__(self, task_func, num_cpu=None, no_parallel=False):
+    def __init__(self, task_func, threads=10, no_parallel=False):
         """
         Args:
           - task_func (callable): Task to run on each work item. Must be a
@@ -61,16 +75,16 @@ class ParallelTask(object):
         """
         self.task_func = task_func
         self.no_parallel = no_parallel
-        self.num_cpu = num_cpu or cpu_count() - 1
+        self.threads = threads
 
-    def run(self, items, chunk_size=1):
+    def run(self, items):
         """Run task in parallel on a list of work items.
 
         Uses multiprocessing in order to avoid Python's GIL.
         """
         if not self.no_parallel:
-            with Pool(self.num_cpu) as pool:
-                for res in pool.imap(self.task_func, items, chunk_size):
+            with ThreadPoolExecutor(max_workers=self.threads) as pool:
+                for res in pool.map(self.task_func, items):
                     yield res
         else:
             for res in map(self.task_func, items):

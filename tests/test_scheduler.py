@@ -63,7 +63,6 @@ def print_em(item):
 
 @mock_s3
 def test_crawl():
-
     s3utils = mocked_s3()
     register("test_file", "http://blah.test", s3utils=s3utils)
     register("test_file2", "http://blah.test2", s3utils=s3utils)
