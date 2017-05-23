@@ -1,5 +1,15 @@
 invoke
-pytest
-pytest-cov
 boto3
 pyyaml
+-e git://github.com/4dn-dcic/tibanna.git#egg=tibanna
+requests
+Submit4DN
+
+
+# for tests
+pytest
+pytest-cov
+flake8
+moto
+mock
+

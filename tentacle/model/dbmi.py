@@ -40,8 +40,7 @@ class DBMIProject(yaml.YAMLObject):
              | Name        | {project}       |
              | Author      | {authors}       |
              | Lab         | {lab}           |
-             | URL         | {url}           |
-             | Description | {description}   |
+             | URL         | {url}           | | Description | {description}   |
              | Tags        | {tags}          |
              | Packages    | {packages}      |
              '''
