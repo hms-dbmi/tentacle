@@ -23,7 +23,7 @@ var/
 *.egginfo
 
 # where pip based git install puts stuff
-src/tibanna/
+src/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
