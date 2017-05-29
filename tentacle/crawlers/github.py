@@ -1,7 +1,10 @@
 import os
 import requests
-from requests.exceptions import RequestException
-from urlparse import urljoin
+# from requests.exceptions import RequestException
+try:
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urljoin
 
 
 class GithubCrawler(object):
@@ -17,11 +20,12 @@ class GithubCrawler(object):
         if organization is None:
             raise RuntimeError("A github organization is required.")
 
-        self.base_api_url = "https://api.github.com"
+        self.organization = organization
+        self.base_api_url = 'https://api.github.com/'
+        self.base_org_url = "%sorgs/%s/" % (self.base_api_url, organization)
         self.headers = {
             'Authorization': 'token %s' % os.getenv("DBMI_TOKEN")
         }
-        self.organization = organization
         self.model = model
 
     def __str__(self):
@@ -29,16 +33,19 @@ class GithubCrawler(object):
             self.organization
         )
 
+    def _request(self, urltail):
+        url = urljoin(self.base_api_url, urltail)
+        response = requests.get(
+            url,
+            headers=self.headers
+        )
+        return response.content
+
     def get_org_info(self):
-        try:
-            response = requests.get(
-                urljoin(
-                    self.base_api_url,
-                    "/orgs/{}".format(self.organization)
-                ),
-                headers=self.headers
-            )
-        except RequestException as e:
-            print e
-        else:
-            print response.content
+        return self._request('orgs/%s' % self.organization)
+
+    def get_repos(self):
+        return self._request('orgs/%s/repos' % self.organization)
+
+    def get_contributors(self, repo_full_name):
+        return self._request('repos/%s/collaborators' % repo_full_name)

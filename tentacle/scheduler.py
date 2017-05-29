@@ -45,7 +45,7 @@ def crawl(s3utils, crawler, threads=10):
 
     '''
     urls = register_list(s3utils)
-    tasks = ParallelTask(crawler)
+    tasks = ThreadedTask(crawler)
     timer = Stopwatch()
     for task in tasks.run(urls.items()):
         pass
@@ -57,20 +57,23 @@ def crawl(s3utils, crawler, threads=10):
 
 class Stopwatch(object):
     def __init__(self):
-        self.start = time.perf_counter()
+        try:
+            self.timer = time.perf_counter
+        except AttributeError:
+            self.timer = time.time
+
+        self.start = self.timer()
 
     @property
     def elapsed(self):
-        return time.perf_counter() - self.start
+        return self.timer() - self.start
 
 
-class ParallelTask(object):
+class ThreadedTask(object):
     def __init__(self, task_func, threads=10, no_parallel=False):
         """
         Args:
-          - task_func (callable): Task to run on each work item. Must be a
-              global function, or instance of a global class, due to
-              multiprocessing's limitations.
+          - task_func (callable): Task to run on each work item.
           - no_parallel (bool): If true, run everything in the main thread.
         """
         self.task_func = task_func
@@ -78,9 +81,8 @@ class ParallelTask(object):
         self.threads = threads
 
     def run(self, items):
-        """Run task in parallel on a list of work items.
-
-        Uses multiprocessing in order to avoid Python's GIL.
+        """Run task concurrently on a list of work items.
+           Currently this is threaded so not parallel
         """
         if not self.no_parallel:
             with ThreadPoolExecutor(max_workers=self.threads) as pool:

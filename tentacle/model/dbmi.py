@@ -13,8 +13,9 @@ class DBMIProject(yaml.YAMLObject):
         return yaml.load(open(path))
 
     def __init__(self, project, description, lab,
-                 authors, languages, tags,
-                 needs=None, packages=None, url=''):
+                 authors, languages, tags='',
+                 needs=None, packages=None, url='',
+                 stars=0, watchers=0, forks=0):
         self.project = project
         self.description = description
         self.lab = lab
@@ -24,6 +25,9 @@ class DBMIProject(yaml.YAMLObject):
         self.needs = needs
         self.packages = packages
         self.url = url
+        self.stars = stars
+        self.watchers = watchers
+        self.forks = forks
 
     def __str__(self):
         return yaml.dump(self)
